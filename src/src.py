@@ -5,14 +5,20 @@ import pyshark
 def menu():
     pick = -1
     listPick = [1]
+    print(" - MENU - ")
+    print(" 1 - Lecture des trames ")
     while listPick.count(pick) != 1 : 
         pick = int(input("Entrer votre choix : "))
-    print(" - MENU - ")
-    print(" 1 - ")
+    return pick
 
+def packetPrint(capture) : 
+    print(" -- Affichage des trames -- ")
+    for packet in capture : 
+        print(packet)
 
 
 # === MAIN === #
-readFile = pyshark.FileCapture("Stage_BTS_2025\sauvegardes\Espion_03832_20250518054123.pcap")
-readFile
+capture = pyshark.FileCapture("Stage_BTS_2025\sauvegardes\Espion_03832_20250518054123.pcap")
 pick = menu()
+if(pick == 1) : 
+    packetPrint(capture)
