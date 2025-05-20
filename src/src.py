@@ -48,7 +48,8 @@ def packetPrint(capture) :
         exit()
     print("\n")
 
-
+# Fonction qui construit le dictionnaire
+# et qui l'affiche
 def packetInfoBuilder(capture) : 
     menuPacketInfoBuilder()
     bdd = []
@@ -66,25 +67,25 @@ def packetInfoBuilder(capture) :
             data["PORT DST"] = packet.tcp.dstport
         if 'SMB2' in packet:
             if packet.smb2.get_field('filename') is not None:
-                data["Filename"] = packet.smb2.filename
+                data["Filename"] = packet.smb2.filename 
+        #if 'LDAP' in packet : 
         bdd.append(data)
         i += 1
+
+        for packet in bdd :
+            print(packet)
     
-    for trames in bdd:
-        for info in trames.items() : 
-            print(info)
         
-
-
 # === MAIN === #
 print("--- DEBUT DU PROGRAMME ---")
 # extraction de la capture .pcap et stocker dans la variable capture
-capture = pyshark.FileCapture("Stage_BTS_2025\sauvegardes\Espion_03832_20250518054123.pcap") 
+capture = pyshark.FileCapture("sauvegardes\Espion_01607_20250516162516.pcap",display_filter="ldap||smb2")
+
 # appel à la fonction menu
 continu = "y"
 while continu != "n" : 
     menuMain() 
-    pickMain = pick([1,2,90])
+    pickMain = pick([1,2,3,90])
     if(pickMain == 1) : 
         packetPrint(capture)
     elif(pickMain == 2) : 
