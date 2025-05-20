@@ -54,13 +54,20 @@ def packetInfoBuilder(capture) :
     bdd = []
     i=1
     for packet in capture : 
-        bdd.append({"IDENT : ": i})
-        if ('IP' in packet) : 
-            bdd.append({"IP SRC : ": packet.ip.src, "IP DST : ":packet.ip.dst})
-        if('ETH' in packet) : 
-            bdd.append({"MAC SRC : ":packet.eth.src,"MAC DST : ":packet.eth.dst})
-        if('TCP' in packet) : 
-            bdd.append({"PORT SRC : ":packet.tcp.srcport,"PORT DST : ":packet.tcp.dstport})
+        data = {"IDENT": i}  # Un dictionnaire unique pour chaque paquet
+        if 'IP' in packet:
+            data["IP SRC"] = packet.ip.src
+            data["IP DST"] = packet.ip.dst
+        if 'ETH' in packet:
+            data["MAC SRC"] = packet.eth.src
+            data["MAC DST"] = packet.eth.dst
+        if 'TCP' in packet:
+            data["PORT SRC"] = packet.tcp.srcport
+            data["PORT DST"] = packet.tcp.dstport
+        if 'SMB2' in packet:
+            if packet.smb2.get_field('filename') is not None:
+                data["Filename"] = packet.smb2.filename
+        bdd.append(data)
         i += 1
     
     for trames in bdd:
