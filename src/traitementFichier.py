@@ -77,6 +77,7 @@ def packetInfoBuilder(capture) :
     
         
 # === MAIN === #
+"""
 print("--- DEBUT DU PROGRAMME ---")
 # extraction de la capture .pcap et stocker dans la variable capture
 capture = pyshark.FileCapture("sauvegardes\Espion_01607_20250516162516.pcap",display_filter="ldap||smb2")
@@ -96,3 +97,4 @@ while continu != "n" :
 
 
 print("\n --- FIN DU PROGRAMME --- \n")
+"""
