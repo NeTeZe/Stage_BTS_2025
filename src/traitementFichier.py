@@ -48,44 +48,46 @@ def packetPrint(capture) :
         exit()
     print("\n")
 
+# Fonction qui traite le packet, construit le dictionnaire
+# et le renvoie
+def traitementPacket(packet,i) :
+    data = {"IDENT": i}  # Un dictionnaire unique pour chaque paquet
+    if 'IP' in packet:
+        data["IP SRC"] = packet.ip.src
+        data["IP DST"] = packet.ip.dst
+    if 'ETH' in packet:
+        data["MAC SRC"] = packet.eth.src
+        data["MAC DST"] = packet.eth.dst
+    if 'TCP' in packet:
+        data["PORT SRC"] = packet.tcp.srcport
+        data["PORT DST"] = packet.tcp.dstport
+    if 'SMB2' in packet:
+        if packet.smb2.get_field('filename') is not None:
+            data["Filename"] = packet.smb2.filename
+        if packet.smb2.get_field('sesid') is not None:
+            data["Session ID"] = packet.smb2.sesid
+        if packet.smb2.get_field('flags.response') is not None:
+            if packet.smb2.flags_response == 'True':
+                data["Is"] = "Response" 
+                data["Rps ID"] = packet.smb2.msg_id # message ID de la réponse
+            elif packet.smb2.flags_response == 'False' : 
+                data["Is"] = "Request" 
+                data["Rqt ID"] = packet.smb2.msg_id # message ID de la requête
+    return data
+
 # Fonction qui construit le dictionnaire
 # et qui l'affiche
 def packetInfoBuilder(capture) : 
     menuPacketInfoBuilder()
     bdd = []
-    i=1
+    i = 1
     for packet in capture : 
-        data = {"IDENT": i}  # Un dictionnaire unique pour chaque paquet
-        if 'IP' in packet:
-            data["IP SRC"] = packet.ip.src
-            data["IP DST"] = packet.ip.dst
-        if 'ETH' in packet:
-            data["MAC SRC"] = packet.eth.src
-            data["MAC DST"] = packet.eth.dst
-        if 'TCP' in packet:
-            data["PORT SRC"] = packet.tcp.srcport
-            data["PORT DST"] = packet.tcp.dstport
-        if 'SMB2' in packet:
-            if packet.smb2.get_field('filename') is not None:
-                data["Filename"] = packet.smb2.filename
-            if packet.smb2.get_field('sesid') is not None:
-                data["Session ID"] = packet.smb2.sesid
-            if packet.smb2.get_field('flags.response') is not None:
-                if packet.smb2.flags_response == 'True':
-                    data["Is"] = "Response" 
-                    data["Rps ID"] = packet.smb2.msg_id # message ID de la réponse
-                elif packet.smb2.flags_response == 'False' : 
-                    data["Is"] = "Request" 
-                    data["Rqt ID"] = packet.smb2.msg_id # message ID de la requête  
-        #if 'LDAP' in packet : 
-        bdd.append(data)
         i += 1
-
+        data = traitementPacket(packet,i)
+        bdd.append(data)
         for packet in bdd :
             print(packet)
     
-        
-
 # Fonction de test
 def fctTest(capture): 
     for pkt in capture:
@@ -95,24 +97,24 @@ def fctTest(capture):
                 print(pkt.smb2.flags_response)
             break  # Pour ne pas spammer
 
+
+def main() :
+    # extraction de la capture .pcap et stocker dans la variable capture
+    capture = pyshark.FileCapture("sauvegardes\Trame test Steph\Espion_08210_20250521070017.pcap",display_filter="ldap||smb2")
+    # appel à la fonction menu
+    continu = "y"
+    while continu != "n" : 
+        menuMain() 
+        pickMain = pick([1,2,3,90])
+        if(pickMain == 1) : 
+            packetPrint(capture)
+        elif(pickMain == 2) : 
+            packetInfoBuilder(capture)
+        elif(pickMain == 90) :
+            fctTest(capture)
+        continu = input("Voulez-vous continuer le programme ? : (y/n) ")
+
 # === MAIN === #
-
 print("--- DEBUT DU PROGRAMME ---")
-# extraction de la capture .pcap et stocker dans la variable capture
-capture = pyshark.FileCapture("sauvegardes\Trame test Steph\Espion_08210_20250521070017.pcap",display_filter="ldap||smb2")
-
-# appel à la fonction menu
-continu = "y"
-while continu != "n" : 
-    menuMain() 
-    pickMain = pick([1,2,3,90])
-    if(pickMain == 1) : 
-        packetPrint(capture)
-    elif(pickMain == 2) : 
-        packetInfoBuilder(capture)
-    elif(pickMain == 90) :
-        fctTest(capture)
-    continu = input("Voulez-vous continuer le programme ? : (y/n) ")
-
-
+main()
 print("\n --- FIN DU PROGRAMME --- \n")
