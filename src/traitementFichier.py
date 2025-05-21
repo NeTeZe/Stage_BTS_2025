@@ -52,7 +52,7 @@ def packetPrint(capture) :
 
 # Fonction qui traite le packet, construit le dictionnaire
 # et le renvoie
-def traitementPacket(packet,i) :
+def traitementPacket(packet,i):
     data = {"IDENT": i}  # Un dictionnaire unique pour chaque paquet
     if 'IP' in packet:
         data["IP SRC"] = packet.ip.src

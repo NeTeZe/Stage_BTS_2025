@@ -38,9 +38,7 @@ def insertionBdd(cursor,bdd) :
     for packet in bdd:
         tbl_valeur = [] 
         for cle, valeur in packet.items() :
-
-            tbl_valeur.append(valeur)
-        print(tbl_valeur)    
+            tbl_valeur.append(valeur)   
         cursor.execute(insert_query,(tbl_valeur[0],tbl_valeur[1],
                                     tbl_valeur[2],tbl_valeur[3],
                                     tbl_valeur[4],tbl_valeur[5],
@@ -55,7 +53,7 @@ def main():
     cur = conn.cursor()
     #Creation de la table 
     createTable(cur)
-    capture = pyshark.FileCapture("sauvegardes\Trame test Steph\Espion_08210_20250521070017.pcap",display_filter="ldap||smb2")
+    capture = pyshark.FileCapture("sauvegardes\Trame test Steph\Espion_08212_20250521070217.pcap",display_filter="ldap||smb2")
     #Création de la bdd 
     bdd = traitementFichier.packetInfoBuilder(capture)
     #Insertion des données dans la tables
