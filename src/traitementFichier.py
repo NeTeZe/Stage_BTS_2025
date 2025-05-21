@@ -71,12 +71,12 @@ def packetInfoBuilder(capture) :
             if packet.smb2.get_field('sesid') is not None:
                 data["Session ID"] = packet.smb2.sesid
             if packet.smb2.get_field('flags.response') is not None:
-                if not packet.smb2.flags_response:
-                    data["Is"] = "Request" 
-                    messageIDRQT = packet.smb2.msg_id # message ID de la requête
-                else :
+                if packet.smb2.flags_response == 'True':
                     data["Is"] = "Response" 
-                    messageIDRSP = packet.smb2.msg_id # message ID de la réponse   
+                    data["Rps ID"] = packet.smb2.msg_id # message ID de la réponse
+                elif packet.smb2.flags_response == 'False' : 
+                    data["Is"] = "Request" 
+                    data["Rqt ID"] = packet.smb2.msg_id # message ID de la requête  
         #if 'LDAP' in packet : 
         bdd.append(data)
         i += 1
