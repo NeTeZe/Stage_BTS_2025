@@ -1,7 +1,7 @@
 # === INCLUDES === #
 #  DOCUMENTATION  https://github.com/KimiNewt/pyshark?tab=readme-ov-file
 import pyshark 
-
+import time
 
 # === FONCTIONS === #
 # Fonction pick qui permet de retourner
@@ -29,6 +29,8 @@ def menuPacketPrint():
 # Fonction menu qui permet d'afficher le menu de la fonction menuPacketInfoBuilder
 def menuPacketInfoBuilder() : 
     print(" -- Construction d'une mini bdd de la capture -- ")
+    print(" 1 - Affichage de la mini bdd ")
+    print(" 2 - Non Affichage de la mini bdd ")
 
 # Fonction qui permet d'afficher les trames extraites 
 def packetPrint(capture) : 
@@ -55,17 +57,31 @@ def traitementPacket(packet,i) :
     if 'IP' in packet:
         data["IP SRC"] = packet.ip.src
         data["IP DST"] = packet.ip.dst
+    else : 
+        data["IP SRC"] = ""
+        data["IP DST"] = ""
     if 'ETH' in packet:
         data["MAC SRC"] = packet.eth.src
         data["MAC DST"] = packet.eth.dst
+    else : 
+        data["MAC SRC"] = ""
+        data["MAC DST"] = ""
     if 'TCP' in packet:
         data["PORT SRC"] = packet.tcp.srcport
         data["PORT DST"] = packet.tcp.dstport
+    else : 
+        data["PORT SRC"] = ""
+        data["PORT DST"] = ""
+
     if 'SMB2' in packet:
         if packet.smb2.get_field('filename') is not None:
             data["Filename"] = packet.smb2.filename
+        else : 
+            data["Filename"] = ""
         if packet.smb2.get_field('sesid') is not None:
             data["Session ID"] = packet.smb2.sesid
+        else : 
+            data["Session ID"] = ""
         if packet.smb2.get_field('flags.response') is not None:
             if packet.smb2.flags_response == 'True':
                 data["Is"] = "Response" 
@@ -73,21 +89,34 @@ def traitementPacket(packet,i) :
             elif packet.smb2.flags_response == 'False' : 
                 data["Is"] = "Request" 
                 data["Rqt ID"] = packet.smb2.msg_id # message ID de la requête
+        else : 
+            data["Is"] = ""
+            data["Rps/Rqt ID"] = ""
     return data
 
 # Fonction qui construit le dictionnaire
 # et qui l'affiche
 def packetInfoBuilder(capture) : 
     menuPacketInfoBuilder()
+    pickPacketInfoBuilder = pick([1,2])
     bdd = []
     i = 1
     for packet in capture : 
-        i += 1
         data = traitementPacket(packet,i)
+        i += 1
         bdd.append(data)
-        for packet in bdd :
-            print(packet)
-    
+    if(pickPacketInfoBuilder == 1) : 
+        affichageMiniBdd(bdd)
+    return bdd
+
+# Fonction qui affiche la bdd
+def affichageMiniBdd(bdd) : 
+    for packet in bdd :
+        print(packet)
+        time.sleep(5)
+        
+
+
 # Fonction de test
 def fctTest(capture): 
     for pkt in capture:
@@ -115,6 +144,8 @@ def main() :
         continu = input("Voulez-vous continuer le programme ? : (y/n) ")
 
 # === MAIN === #
+'''
 print("--- DEBUT DU PROGRAMME ---")
 main()
 print("\n --- FIN DU PROGRAMME --- \n")
+'''
