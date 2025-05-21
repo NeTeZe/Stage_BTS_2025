@@ -67,7 +67,16 @@ def packetInfoBuilder(capture) :
             data["PORT DST"] = packet.tcp.dstport
         if 'SMB2' in packet:
             if packet.smb2.get_field('filename') is not None:
-                data["Filename"] = packet.smb2.filename 
+                data["Filename"] = packet.smb2.filename
+            if packet.smb2.get_field('sesid') is not None:
+                data["Session ID"] = packet.smb2.sesid
+            if packet.smb2.get_field('flags.response') is not None:
+                if not packet.smb2.flags_response:
+                    data["Is"] = "Request" 
+                    messageIDRQT = packet.smb2.msg_id # message ID de la requête
+                else :
+                    data["Is"] = "Response" 
+                    messageIDRSP = packet.smb2.msg_id # message ID de la réponse   
         #if 'LDAP' in packet : 
         bdd.append(data)
         i += 1
@@ -76,11 +85,21 @@ def packetInfoBuilder(capture) :
             print(packet)
     
         
+
+# Fonction de test
+def fctTest(capture): 
+    for pkt in capture:
+        if 'smb2' in pkt:
+            print(pkt.smb2._all_fields)
+            if (pkt.smb2.flags) is not None :
+                print(pkt.smb2.flags_response)
+            break  # Pour ne pas spammer
+
 # === MAIN === #
-"""
+
 print("--- DEBUT DU PROGRAMME ---")
 # extraction de la capture .pcap et stocker dans la variable capture
-capture = pyshark.FileCapture("sauvegardes\Espion_01607_20250516162516.pcap",display_filter="ldap||smb2")
+capture = pyshark.FileCapture("sauvegardes\Trame test Steph\Espion_08210_20250521070017.pcap",display_filter="ldap||smb2")
 
 # appel à la fonction menu
 continu = "y"
@@ -92,9 +111,8 @@ while continu != "n" :
     elif(pickMain == 2) : 
         packetInfoBuilder(capture)
     elif(pickMain == 90) :
-        print("TEST")
+        fctTest(capture)
     continu = input("Voulez-vous continuer le programme ? : (y/n) ")
 
 
 print("\n --- FIN DU PROGRAMME --- \n")
-"""
