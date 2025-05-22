@@ -12,7 +12,7 @@ Dépendances : psycopg2, pyshark, traitementFichier.py
 """
 
 import psycopg2
-from include import traitement_fichier
+from include import traitement_fichier_local
 import pyshark
 
 # === CONNEXION À LA BASE DE DONNÉES ===
@@ -41,20 +41,20 @@ def createTable(cursor):
 
     :param cursor: curseur de la connexion PostgreSQL
     """
-    cursor.execute("DROP TABLE IF EXISTS packet")
+    cursor.execute("DROP TABLE IF EXISTS packet_local")
     cursor.execute("""
-        CREATE TABLE packet(
+        CREATE TABLE packet_local(
             packet_id INTEGER PRIMARY KEY,
-            ip_src VARCHAR(100),
-            ip_dst VARCHAR(100),
-            mac_src VARCHAR(100), 
-            mac_dst VARCHAR(100), 
-            port_src VARCHAR(100), 
-            port_dst VARCHAR(100),
-            filename VARCHAR(100),
-            session_id VARCHAR(100), 
-            is_a VARCHAR(100),
-            id_echange VARCHAR(100)
+            ip_src VARCHAR(500),
+            ip_dst VARCHAR(500),
+            mac_src VARCHAR(500), 
+            mac_dst VARCHAR(500), 
+            port_src VARCHAR(500), 
+            port_dst VARCHAR(500),
+            filename VARCHAR(500),
+            session_id VARCHAR(50), 
+            is_a VARCHAR(500),
+            id_echange VARCHAR(500)
         );
     """)
 
@@ -68,7 +68,7 @@ def insertionBdd(cursor, bdd):
     :param bdd: liste de dictionnaires (base de données en mémoire)
     """
     insert_query = """
-        INSERT INTO packet(
+        INSERT INTO packet_local(
             packet_id, ip_src, ip_dst, mac_src, mac_dst, 
             port_src, port_dst, filename, session_id, 
             is_a, id_echange
@@ -84,40 +84,4 @@ def insertionBdd(cursor, bdd):
         ]]
         cursor.execute(insert_query, valeurs)
 
-# === MAIN PROGRAMME ===
-
-def main():
-    """
-    Fonction principale du programme :
-    - Demande le mot de passe PostgreSQL
-    - Crée la table 'packet'
-    - Extrait les paquets réseau depuis un fichier .pcap
-    - Insère les données dans la base
-    """
-    pwd = input("Entrer le mot de passe PostgreSQL : ")
-
-    # Connexion à la base
-    conn = connectionBdd(pwd)
-    cur = conn.cursor()
-
-    # Création de la table
-    createTable(cur)
-
-    # Extraction des données depuis un fichier PCAP
-    capture = pyshark.FileCapture(
-        "sauvegardes/Trame test Steph/Espion_08212_20250521070217.pcap",
-        display_filter="ldap || smb2"
-    )
-
-    bdd = traitement_fichier.packetInfoBuilder(capture)
-
-    # Insertion dans la base
-    insertionBdd(cur, bdd)
-
-    # Commit & fermeture
-    conn.commit()
-    cur.close()
-    conn.close()
-
-# === POINT D'ENTRÉE ===
 
