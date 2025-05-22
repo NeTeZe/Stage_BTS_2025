@@ -53,7 +53,7 @@ def main():
             for file in files:
                 full_path = os.path.join(directory_path, file)
                 capture = pyshark.FileCapture(full_path, display_filter=display_filter)
-                traitement_fichier_local.packetPrint_local(capture)
+                traitement_fichier_local.PacketPrint_local(capture)
 
         elif choice == 2:
             pwd = input("Mot de passe PostgreSQL : ")

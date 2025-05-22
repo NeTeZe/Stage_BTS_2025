@@ -84,7 +84,7 @@ def insertionBdd(cursor, bdd):
     for packet in bdd:
         # Récupération du code de commande SMB2 (sous forme de chaîne) et de sa correspondance
         cmd = packet.get("SMB2 Command", "")
-        cmd_str = SMB2_COMMANDS.get(cmd, "") if cmd else ""
+        cmd_str = traitement_fichier_local.SMB2_COMMANDS.get(cmd, "") if cmd else ""
         
         valeurs = [packet.get(cle, "") for cle in [
             "IDENT", "Timestamp", "IP SRC", "IP DST", "MAC SRC", "MAC DST",

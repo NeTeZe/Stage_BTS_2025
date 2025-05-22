@@ -117,10 +117,9 @@ def traitementPacket(packet):
             data["Erreur SMB2"] = ""
 
         # Commande SMB2
-        if packet.smb2.get_field('command'):
-            cmd_code = packet.smb2.command
-            data["SMB2 Command"] = cmd_code
-            data["SMB2 Command Desc"] = SMB2_COMMANDS.get(cmd_code, "Inconnu")
+        if packet.smb2.get_field('cmd'):
+            data["SMB2 Command"] = packet.smb2.cmd
+            data["SMB2 Command Desc"] = SMB2_COMMANDS.get(packet.smb2.cmd, "Inconnu")
         else:
             data["SMB2 Command"] = ""
             data["SMB2 Command Desc"] = ""
