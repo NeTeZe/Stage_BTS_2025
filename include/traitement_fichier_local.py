@@ -10,9 +10,41 @@ Dépendance : pyshark (analyse de fichiers .pcap)
 
 import pyshark
 import time
+from datetime import datetime
 
 # === VARIABLE GLOBALE === #
 i = 0  # Compteur global pour numéroter les paquets
+
+# === TABLE DE DÉCODAGE DES ERREURS SMB2 === #
+SMB2_ERRORS = {
+    '0xc0000034': 'STATUS_OBJECT_NAME_NOT_FOUND',
+    '0xc0000022': 'STATUS_ACCESS_DENIED',
+    '0xc000000f': 'STATUS_NO_SUCH_FILE',
+    '0xc000003a': 'STATUS_OBJECT_PATH_NOT_FOUND',
+    # Ajoutez-en plus si besoin
+}
+# === TABLE DE CORRESPONDANCE DES COMMANDES SMB2 === #
+SMB2_COMMANDS = {
+    '0': 'NEGOTIATE',
+    '1': 'SESSION_SETUP',
+    '2': 'LOGOFF',
+    '3': 'TREE_CONNECT',
+    '4': 'TREE_DISCONNECT',
+    '5': 'CREATE',
+    '6': 'CLOSE',
+    '7': 'FLUSH',
+    '8': 'READ',
+    '9': 'WRITE',
+    '10': 'LOCK',
+    '11': 'IOCTL',
+    '12': 'CANCEL',
+    '13': 'KEEPALIVE',
+    '14': 'FIND',          # ou QUERY_DIRECTORY
+    '15': 'NOTIFY',
+    '16': 'GETINFO',
+    '17': 'SETINFO',
+    '18': 'BREAK'
+}
 
 # === AFFICHAGE DE MENU ===
 
@@ -23,13 +55,12 @@ def menuPacketInfoBuilder():
 
 # === TRAITEMENT DES PAQUETS ===
 
-def packetPrint(capture):
+def PacketPrint_local(capture):
     """
     Affiche tous les paquets d'une capture.
 
     :param capture: objet pyshark contenant les paquets
     """
-    print(" --- Affichage des paquets ---\n")
     for packet in capture:
         time.sleep(1)
         print(packet)
@@ -37,13 +68,19 @@ def packetPrint(capture):
 def traitementPacket(packet):
     """
     Extrait les informations utiles d'un paquet sous forme de dictionnaire.
+    Ignore les paquets SMB2 de type 'réponse'.
 
     :param packet: paquet pyshark
-    :return: dictionnaire de données extraites
+    :return: dictionnaire de données extraites ou None
     """
-    print(" - Traitement du paquet -")
     global i
     data = {"IDENT": i}
+
+    # === DATE/HEURE DE CAPTURE ===
+    if hasattr(packet, 'sniff_time'):
+        data["Timestamp"] = packet.sniff_time.strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        data["Timestamp"] = ""
 
     # IP
     data["IP SRC"] = packet.ip.src if 'IP' in packet else ""
@@ -59,20 +96,36 @@ def traitementPacket(packet):
 
     # SMB2
     if 'SMB2' in packet:
-        smb2 = packet.smb2
-        data["Filename"] = smb2.filename if smb2.get_field('filename') else ""
-        data["Session ID"] = smb2.sesid if smb2.get_field('sesid') else ""
-        if smb2.get_field('flags.response') is not None:
-            if smb2.flags_response == 'True':
-                data["Is"] = "Response"
-                data["Rps ID"] = smb2.msg_id
-            elif smb2.flags_response == 'False':
-                data["Is"] = "Request"
-                data["Rqt ID"] = smb2.msg_id
+        data["Filename"] = packet.smb2.filename if packet.smb2.get_field('filename') else ""
+        data["Session ID"] = packet.smb2.sesid if packet.smb2.get_field('sesid') else ""
+
+        # Type de paquet : Requête ou Réponse
+        if packet.smb2.get_field('flags.response') == '1' or packet.smb2.flags_response == 'True':
+            data["Is"] = "Response"
         else:
-            data["Is"] = ""
-            data["Rps/Rqt ID"] = ""
-    print(" - Fin du traitement du paquet - ")
+            data["Is"] = "Request"
+
+        data["Rqt ID"] = packet.smb2.msg_id if packet.smb2.get_field('msg_id') else ""
+
+        # Code d’erreur (nt_status)
+        if packet.smb2.get_field('nt_status'):
+            err_code = packet.smb2.nt_status
+            data["NT_STATUS"] = err_code
+            data["Erreur SMB2"] = SMB2_ERRORS.get(err_code.lower(), "Erreur inconnue")
+        else:
+            data["NT_STATUS"] = ""
+            data["Erreur SMB2"] = ""
+
+        # Commande SMB2
+        if packet.smb2.get_field('command'):
+            cmd_code = packet.smb2.command
+            data["SMB2 Command"] = cmd_code
+            data["SMB2 Command Desc"] = SMB2_COMMANDS.get(cmd_code, "Inconnu")
+        else:
+            data["SMB2 Command"] = ""
+            data["SMB2 Command Desc"] = ""
+
+
     i += 1
     return data
 
@@ -84,11 +137,7 @@ def packetInfoBuilder(capture):
     :return: liste de dictionnaires contenant les infos des paquets
     """
     menuPacketInfoBuilder()
-    bdd = []
-    for packet in capture:
-        data = traitementPacket(packet)
-        bdd.append(data)
-    return bdd
+    return [data for packet in capture if (data := traitementPacket(packet)) is not None]
 
 def affichageMiniBdd(bdd):
     """
@@ -96,7 +145,6 @@ def affichageMiniBdd(bdd):
 
     :param bdd: liste de dictionnaires
     """
-    print(" --- Affichage de la base de données ---\n")
     for packet in bdd:
         print(packet)
         time.sleep(0.5)  # Affichage fluide

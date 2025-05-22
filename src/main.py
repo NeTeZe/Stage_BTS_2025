@@ -29,15 +29,15 @@ def menu_principal():
     print("0 - Quitter")
 
 
-def pick(choices):
-    choix = -1
-    while choix not in choices:
+def pick(listChoices):
+    choice = -1
+    while choice not in listChoices:
         try:
-            choix = int(input("Entrer votre choix : "))
+            choice = int(input("Entrer votre choice : "))
         except ValueError:
             print("Veuillez entrer un nombre valide.")
     print("\n")
-    return choix
+    return choice
 
 
 def main():
@@ -47,15 +47,15 @@ def main():
 
     while True:
         menu_principal()
-        choix = pick([0, 1, 2, 3])
+        choice = pick([0, 1, 2, 3])
 
-        if choix == 1:
+        if choice == 1:
             for file in files:
                 full_path = os.path.join(directory_path, file)
                 capture = pyshark.FileCapture(full_path, display_filter=display_filter)
-                traitement_fichier_local.packetPrint(capture)
+                traitement_fichier_local.packetPrint_local(capture)
 
-        elif choix == 2:
+        elif choice == 2:
             pwd = input("Mot de passe PostgreSQL : ")
             conn = gestion_bdd_local.connectionBdd(pwd)
             cur = conn.cursor()
@@ -65,7 +65,8 @@ def main():
                 full_path = os.path.join(directory_path, file)
                 capture = pyshark.FileCapture(full_path, display_filter=display_filter)
                 bdd = traitement_fichier_local.packetInfoBuilder(capture)
-                gestion_bdd_local.insertionBdd(cur, bdd)
+                if bdd is not None : 
+                    gestion_bdd_local.insertionBdd(cur, bdd)
                 capture.close()
 
             conn.commit()
@@ -73,7 +74,7 @@ def main():
             conn.close()
             print("✅ Données insérées dans la base PostgreSQL.")
 
-        elif choix == 3:
+        elif choice == 3:
             pwd = input("Mot de passe PostgreSQL : ")
             conn = gestion_bdd_live.connectionBdd(pwd)
             cur = conn.cursor()
@@ -85,7 +86,7 @@ def main():
             cur.close()
             conn.close()
 
-        elif choix == 0:
+        elif choice == 0:
             print("\n--- Fin du programme ---\n")
             break
 
