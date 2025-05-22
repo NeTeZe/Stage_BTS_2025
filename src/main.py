@@ -41,7 +41,7 @@ def pick(choices):
 
 
 def main():
-    directory_path = "sauvegardes\\Trame test Steph"
+    directory_path = "sauvegardes"
     display_filter = "ldap || smb2"
     files = [f for f in os.listdir(directory_path) if f.endswith('.pcap')]
 

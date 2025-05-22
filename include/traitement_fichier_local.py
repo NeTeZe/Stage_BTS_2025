@@ -18,7 +18,7 @@ i = 0  # Compteur global pour numéroter les paquets
 
 def menuPacketInfoBuilder():
     """Affiche une bannière pour la construction du dictionnaire."""
-    print(" --- Nouveau Packet --- ")
+    print(" --- Nouvelle trame --- ")
     print(" -- Construction du dictionnaire --\n")
 
 # === TRAITEMENT DES PAQUETS ===
@@ -31,6 +31,7 @@ def packetPrint(capture):
     """
     print(" --- Affichage des paquets ---\n")
     for packet in capture:
+        time.sleep(1)
         print(packet)
 
 def traitementPacket(packet):
@@ -40,6 +41,7 @@ def traitementPacket(packet):
     :param packet: paquet pyshark
     :return: dictionnaire de données extraites
     """
+    print(" - Traitement du paquet -")
     global i
     data = {"IDENT": i}
 
@@ -70,7 +72,7 @@ def traitementPacket(packet):
         else:
             data["Is"] = ""
             data["Rps/Rqt ID"] = ""
-
+    print(" - Fin du traitement du paquet - ")
     i += 1
     return data
 
