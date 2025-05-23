@@ -59,7 +59,7 @@ def createTable(cursor):
             nt_status VARCHAR(20),
             erreur_smb2 VARCHAR(500),
             smb2_command VARCHAR(20),
-            smb2_command_desc VARCHAR(50)
+            smb2_command_desc VARCHAR(500)
         );
     """)
 
@@ -84,8 +84,9 @@ def insertionBdd(cursor, bdd):
     for packet in bdd:
         # Récupération du code de commande SMB2 (sous forme de chaîne) et de sa correspondance
         cmd = packet.get("SMB2 Command", "")
-        cmd_str = traitement_fichier_local.SMB2_COMMANDS.get(cmd, "") if cmd else ""
-        
+        cmd_str = packet.get("SMB2 Command Desc", "")
+        print(cmd)
+        print(cmd_str)
         valeurs = [packet.get(cle, "") for cle in [
             "IDENT", "Timestamp", "IP SRC", "IP DST", "MAC SRC", "MAC DST",
             "PORT SRC", "PORT DST", "Filename", "Session ID",
@@ -94,34 +95,3 @@ def insertionBdd(cursor, bdd):
         # Ajouter les deux nouvelles valeurs à la fin
         valeurs.extend([cmd, cmd_str])
         cursor.execute(insert_query, valeurs)
-
-# === EXEMPLE D’UTILISATION ===
-# À adapter si tu veux faire tourner ce script en tant que main
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) != 3:
-        print("Usage : python insertionBdd.py <mot_de_passe> <fichier_pcap>")
-        sys.exit(1)
-
-    pwd = sys.argv[1]
-    fichier_pcap = sys.argv[2]
-
-    # Connexion à la base
-    conn = connectionBdd(pwd)
-    cursor = conn.cursor()
-
-    # Création de la table
-    createTable(cursor)
-
-    # Lecture du fichier pcap
-    capture = pyshark.FileCapture(fichier_pcap)
-    bdd = traitement_fichier_local.packetInfoBuilder(capture)
-
-    # Insertion des données
-    insertionBdd(cursor, bdd)
-    conn.commit()
-    conn.close()
-
-    print("Insertion terminée avec succès.")

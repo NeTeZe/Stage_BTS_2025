@@ -21,6 +21,17 @@ SMB2_ERRORS = {
     '0xc0000022': 'STATUS_ACCESS_DENIED',
     '0xc000000f': 'STATUS_NO_SUCH_FILE',
     '0xc000003a': 'STATUS_OBJECT_PATH_NOT_FOUND',
+    '0xc0000061': 'STATUS_PRIVILEGE_NOT_HELD',
+    '0x00000103': 'STATUS_PENDING',
+    '0xc0000003': 'STATUS_INVALID_INFO_CLASS',
+    '0x80000006': 'STATUS_NO_MORE_FILES',
+    '0xc000019c': 'STATUS_FS_DRIVER_REQUIRED',
+    '0xc0000023': 'STATUS_BUFFER_TOO_SMALL',
+    '0xc0000120': 'STATUS_CANCELLED',
+    '0xc00002b8': 'STATUS_JOURNAL_NOT_ACTIVE',
+    '0xc0000225': 'STATUS_NOT_FOUND',
+    '0x80000005': 'STATUS_BUFFER_OVERFLOW',
+    '0x00000000': 'SUCCESS'
     # Ajoutez-en plus si besoin
 }
 # === TABLE DE CORRESPONDANCE DES COMMANDES SMB2 === #
@@ -38,7 +49,7 @@ SMB2_COMMANDS = {
     '10': 'LOCK',
     '11': 'IOCTL',
     '12': 'CANCEL',
-    '13': 'KEEPALIVE',
+    '13': 'ECHO', 
     '14': 'FIND',          # ou QUERY_DIRECTORY
     '15': 'NOTIFY',
     '16': 'GETINFO',
@@ -74,7 +85,7 @@ def traitementPacket(packet):
     :return: dictionnaire de données extraites ou None
     """
     global i
-    data = {"IDENT": i}
+    data = {"IDENT": packet.number}
 
     # === DATE/HEURE DE CAPTURE ===
     if hasattr(packet, 'sniff_time'):
@@ -118,8 +129,20 @@ def traitementPacket(packet):
 
         # Commande SMB2
         if packet.smb2.get_field('cmd'):
-            data["SMB2 Command"] = packet.smb2.cmd
-            data["SMB2 Command Desc"] = SMB2_COMMANDS.get(packet.smb2.cmd, "Inconnu")
+            cmd_code = packet.smb2.cmd
+            cmd_desc = SMB2_COMMANDS.get(cmd_code, "Inconnu")
+            if int(str(cmd_code), 0) == 0x12 :
+                print(packet.smb2.lease_lease_flags)
+                if(packet.smb2.lease_lease_flags == '0x00000001' ) :
+                    print(packet.number," Lease Break Notification détectée")              
+                    cmd_desc += "_LB_Not"
+                else :
+                    print(packet.number," Lease Break Acknowledgment détectée")
+                    cmd_desc += "_LB_Ack"
+                    print(cmd_desc)
+            # Remplissage du dictionnaire
+            data["SMB2 Command"] = cmd_code
+            data["SMB2 Command Desc"] = cmd_desc
         else:
             data["SMB2 Command"] = ""
             data["SMB2 Command Desc"] = ""
