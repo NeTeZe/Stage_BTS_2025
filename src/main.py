@@ -2,6 +2,8 @@ import pyshark
 import sys
 import os
 import signal
+import time
+import shutil
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -9,6 +11,7 @@ from include import analyse_reseau
 from include import gestion_bdd_local
 from include import gestion_bdd_live
 from include import traitement_fichier_local
+from include import db_management
 
 
 def handler(sig, frame):
@@ -18,7 +21,6 @@ def handler(sig, frame):
         exit(0)
     else:
         print("Reprise du programme.")
-signal.signal(signal.SIGINT, handler)
 
 
 def menu_principal():
@@ -41,44 +43,39 @@ def pick(listChoices):
 
 
 def main():
-    directory_path = "sauvegardes"
-    display_filter = "ldap || smb2"
-    files = [f for f in os.listdir(directory_path) if f.endswith('.pcap')]
+    directory_path = "incoming_files" # Set the folder for the files to be processed
+    directory_dst_path = "proccessed_files" # Set file folder after processing
+    display_filter = "ldap || smb2" # Add the filters you want to use for the capture
+    all_files = [f for f in os.listdir(directory_path) if f.endswith('.pcap')] # Create a list of files in your folder
 
     while True:
-        menu_principal()
-        choice = pick([0, 1, 2, 3])
-
+        menu_principal() # Displays the main menu function
+        choice = pick([0, 1, 2]) # Executes the selection function with the list passed as a parameter
+        
         if choice == 1:
-            for file in files:
+            cur,conn = db_management.database_init() # Initializes cur and conn variables
+            for file in all_files: # Browse files in the files variable
+                print("         ---- FICHIER EN COURS ----\n        ",file)
                 full_path = os.path.join(directory_path, file)
                 capture = pyshark.FileCapture(full_path, display_filter=display_filter)
-                traitement_fichier_local.PacketPrint_local(capture)
-
-        elif choice == 2:
-            pwd = input("Mot de passe PostgreSQL : ")
-            conn = gestion_bdd_local.connectionBdd(pwd)
-            cur = conn.cursor()
-            gestion_bdd_local.createTable(cur)
-
-            for file in files:
-                full_path = os.path.join(directory_path, file)
-                capture = pyshark.FileCapture(full_path, display_filter=display_filter)
-                bdd = traitement_fichier_local.packetInfoBuilder(capture)
-                if bdd is not None : 
-                    gestion_bdd_local.insertionBdd(cur, bdd)
+                for packet in capture : 
+                    traitement_fichier_local.traitementPacket(packet,cur)
+                try:
+                    # Move the file if everything went well
+                    shutil.move(full_path, directory_dst_path)
+                    print(f"✅ File successfully moved to: {directory_dst_path}")
+                except (shutil.Error, OSError) as e:
+                    print(f"❌ Error while moving file {full_path} → {directory_dst_path}: {e}")
+                
                 capture.close()
-
+            
             conn.commit()
             cur.close()
             conn.close()
-            print("✅ Données insérées dans la base PostgreSQL.")
+            print("✅ Data successfully inserted into the PostgreSQL database.")
 
-        elif choice == 3:
-            pwd = input("Mot de passe PostgreSQL : ")
-            conn = gestion_bdd_live.connectionBdd(pwd)
-            cur = conn.cursor()
-            gestion_bdd_live.createTable(cur)
+        elif choice == 2:
+            cur,conn = db_management.database_init()
 
             # Utilisation du module analyse_reseau pour la capture live
             analyse_reseau.analyse_live(cur, conn)
@@ -87,10 +84,11 @@ def main():
             conn.close()
 
         elif choice == 0:
-            print("\n--- Fin du programme ---\n")
             break
 
 
 if __name__ == "__main__":
     print("--- DÉBUT DU PROGRAMME ---")
+    signal.signal(signal.SIGINT, handler)
     main()
+    print("\n--- Fin du programme ---\n")

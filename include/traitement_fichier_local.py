@@ -11,72 +11,14 @@ Dépendance : pyshark (analyse de fichiers .pcap)
 import pyshark
 import time
 from datetime import datetime
+from include import gestion_bdd_local
 
 # === VARIABLE GLOBALE === #
 i = 0  # Compteur global pour numéroter les paquets
 
-# === TABLE DE DÉCODAGE DES ERREURS SMB2 === #
-SMB2_ERRORS = {
-    '0xc0000034': 'STATUS_OBJECT_NAME_NOT_FOUND',
-    '0xc0000022': 'STATUS_ACCESS_DENIED',
-    '0xc000000f': 'STATUS_NO_SUCH_FILE',
-    '0xc000003a': 'STATUS_OBJECT_PATH_NOT_FOUND',
-    '0xc0000061': 'STATUS_PRIVILEGE_NOT_HELD',
-    '0x00000103': 'STATUS_PENDING',
-    '0xc0000003': 'STATUS_INVALID_INFO_CLASS',
-    '0x80000006': 'STATUS_NO_MORE_FILES',
-    '0xc000019c': 'STATUS_FS_DRIVER_REQUIRED',
-    '0xc0000023': 'STATUS_BUFFER_TOO_SMALL',
-    '0xc0000120': 'STATUS_CANCELLED',
-    '0xc00002b8': 'STATUS_JOURNAL_NOT_ACTIVE',
-    '0xc0000225': 'STATUS_NOT_FOUND',
-    '0x80000005': 'STATUS_BUFFER_OVERFLOW',
-    '0x00000000': 'SUCCESS'
-    # Ajoutez-en plus si besoin
-}
-# === TABLE DE CORRESPONDANCE DES COMMANDES SMB2 === #
-SMB2_COMMANDS = {
-    '0': 'NEGOTIATE',
-    '1': 'SESSION_SETUP',
-    '2': 'LOGOFF',
-    '3': 'TREE_CONNECT',
-    '4': 'TREE_DISCONNECT',
-    '5': 'CREATE',
-    '6': 'CLOSE',
-    '7': 'FLUSH',
-    '8': 'READ',
-    '9': 'WRITE',
-    '10': 'LOCK',
-    '11': 'IOCTL',
-    '12': 'CANCEL',
-    '13': 'ECHO', 
-    '14': 'FIND',          # ou QUERY_DIRECTORY
-    '15': 'NOTIFY',
-    '16': 'GETINFO',
-    '17': 'SETINFO',
-    '18': 'BREAK'
-}
-
-# === AFFICHAGE DE MENU ===
-
-def menuPacketInfoBuilder():
-    """Affiche une bannière pour la construction du dictionnaire."""
-    print(" --- Nouvelle trame --- ")
-    print(" -- Construction du dictionnaire --\n")
-
 # === TRAITEMENT DES PAQUETS ===
 
-def PacketPrint_local(capture):
-    """
-    Affiche tous les paquets d'une capture.
-
-    :param capture: objet pyshark contenant les paquets
-    """
-    for packet in capture:
-        time.sleep(1)
-        print(packet)
-
-def traitementPacket(packet):
+def traitementPacket(packet,cursor):
     """
     Extrait les informations utiles d'un paquet sous forme de dictionnaire.
     Ignore les paquets SMB2 de type 'réponse'.
@@ -84,8 +26,10 @@ def traitementPacket(packet):
     :param packet: paquet pyshark
     :return: dictionnaire de données extraites ou None
     """
+    #print("-- DEBUT Traitement packet --\n  ",packet.number)
     global i
-    data = {"IDENT": packet.number}
+    data = {"id": i}
+    data["packet_id"]= packet.number
 
     # === DATE/HEURE DE CAPTURE ===
     if hasattr(packet, 'sniff_time'):
@@ -132,14 +76,10 @@ def traitementPacket(packet):
             cmd_code = packet.smb2.cmd
             cmd_desc = SMB2_COMMANDS.get(cmd_code, "Inconnu")
             if int(str(cmd_code), 0) == 0x12 :
-                print(packet.smb2.lease_lease_flags)
-                if(packet.smb2.lease_lease_flags == '0x00000001' ) :
-                    print(packet.number," Lease Break Notification détectée")              
+                if(packet.smb2.lease_lease_flags == '0x00000001' ) :       
                     cmd_desc += "_LB_Not"
                 else :
-                    print(packet.number," Lease Break Acknowledgment détectée")
                     cmd_desc += "_LB_Ack"
-                    print(cmd_desc)
             # Remplissage du dictionnaire
             data["SMB2 Command"] = cmd_code
             data["SMB2 Command Desc"] = cmd_desc
@@ -149,24 +89,5 @@ def traitementPacket(packet):
 
 
     i += 1
-    return data
-
-def packetInfoBuilder(capture):
-    """
-    Construit une base de données à partir d'une capture réseau.
-
-    :param capture: liste ou itérable de paquets pyshark
-    :return: liste de dictionnaires contenant les infos des paquets
-    """
-    menuPacketInfoBuilder()
-    return [data for packet in capture if (data := traitementPacket(packet)) is not None]
-
-def affichageMiniBdd(bdd):
-    """
-    Affiche le contenu de la mini base de données.
-
-    :param bdd: liste de dictionnaires
-    """
-    for packet in bdd:
-        print(packet)
-        time.sleep(0.5)  # Affichage fluide
+    #print("-- FIN Traitement packet --\n  ",packet.number)
+    gestion_bdd_local.insertionBdd(cursor, data)

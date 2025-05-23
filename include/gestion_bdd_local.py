@@ -14,84 +14,37 @@ Dépendances : psycopg2, pyshark, traitement_fichier_local.py
 import psycopg2
 from include import traitement_fichier_local
 import pyshark
+from include import gestion_bdd
+from include import db_management
 
-# === CONNEXION À LA BASE DE DONNÉES ===
-
-def connectionBdd(pwd):
-    """
-    Initialise une connexion à la base de données PostgreSQL.
-
-    :param pwd: mot de passe de l'utilisateur 'postgres'
-    :return: objet connection psycopg2
-    """
-    conn = psycopg2.connect(
-        database="Serveur local trames",
-        user="postgres",
-        host='localhost',
-        password=pwd,
-        port=5432
-    )
-    return conn
-
-# === GESTION DE LA TABLE ===
-
-def createTable(cursor):
-    """
-    Supprime la table 'packet_local' si elle existe, puis la recrée avec la structure complète.
-
-    :param cursor: curseur de la connexion PostgreSQL
-    """
-    cursor.execute("DROP TABLE IF EXISTS packet_local")
-    cursor.execute("""
-        CREATE TABLE packet_local (
-            packet_id INTEGER PRIMARY KEY,
-            timestamp TIMESTAMP,
-            ip_src VARCHAR(500),
-            ip_dst VARCHAR(500),
-            mac_src VARCHAR(500), 
-            mac_dst VARCHAR(500), 
-            port_src VARCHAR(500), 
-            port_dst VARCHAR(500),
-            filename VARCHAR(500),
-            session_id VARCHAR(50), 
-            is_a VARCHAR(500),
-            id_echange VARCHAR(500),
-            nt_status VARCHAR(20),
-            erreur_smb2 VARCHAR(500),
-            smb2_command VARCHAR(20),
-            smb2_command_desc VARCHAR(500)
-        );
-    """)
 
 # === INSERTION DES DONNÉES ===
 
-def insertionBdd(cursor, bdd):
+def insert_into_db(cursor, packet):
     """
-    Insère les données extraites dans la base de données PostgreSQL.
+    Inserts extracted packet data into a PostgreSQL database using the provided cursor.
 
-    :param cursor: curseur PostgreSQL
-    :param bdd: liste de dictionnaires (base de données en mémoire)
+    :param cursor: PostgreSQL database cursor used to execute the insert query.
+    :param packet: Dictionary containing extracted packet information.
+                   Expected keys include SMB2 command fields, network addresses,
+                   session identifiers, and error codes.
     """
-    insert_query = """
-        INSERT INTO packet_local(
-            packet_id, timestamp, ip_src, ip_dst, mac_src, mac_dst,
-            port_src, port_dst, filename, session_id,
-            is_a, id_echange, nt_status, erreur_smb2,
-            smb2_command, smb2_command_desc
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
+    insert_query = db_management.query_creation()
 
-    for packet in bdd:
-        # Récupération du code de commande SMB2 (sous forme de chaîne) et de sa correspondance
-        cmd = packet.get("SMB2 Command", "")
-        cmd_str = packet.get("SMB2 Command Desc", "")
-        print(cmd)
-        print(cmd_str)
-        valeurs = [packet.get(cle, "") for cle in [
-            "IDENT", "Timestamp", "IP SRC", "IP DST", "MAC SRC", "MAC DST",
-            "PORT SRC", "PORT DST", "Filename", "Session ID",
-            "Is", "Rqt ID", "NT_STATUS", "Erreur SMB2"
-        ]]
-        # Ajouter les deux nouvelles valeurs à la fin
-        valeurs.extend([cmd, cmd_str])
-        cursor.execute(insert_query, valeurs)
+    # Get SMB2 command code and description
+    cmd_code = packet.get("SMB2 Command", "")
+    cmd_description = packet.get("SMB2 Command Desc", "")
+
+    # Extract values from the packet in the expected order
+    values = [packet.get(key, "") for key in [
+        "id", "packet_id", "Timestamp", "IP SRC", "IP DST", "MAC SRC", "MAC DST",
+        "PORT SRC", "PORT DST", "Filename", "Session ID",
+        "Is", "Rqt ID", "NT_STATUS", "Erreur SMB2"
+    ]]
+
+    # Append the SMB2 command code and description at the end
+    values.extend([cmd_code, cmd_description])
+
+    # Execute the insert query with the prepared values
+    cursor.execute(insert_query, values)
+    # print("-- Packet added to the database --\n")
